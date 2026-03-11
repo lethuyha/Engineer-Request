@@ -21,6 +21,7 @@ def init_db():
             secteur TEXT NOT NULL,
             requester TEXT NOT NULL,
             description TEXT NOT NULL,
+            type TEXT,
             attachment_path TEXT,
             status TEXT NOT NULL DEFAULT 'SUBMITTED',
             assignee TEXT,
