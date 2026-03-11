@@ -324,7 +324,7 @@
             <tr>
               <td class="text-muted small">#${req.id}</td>
               <td class="small">${req.date_submitted}</td>
-              <td class="small">Secteur ${req.secteur}</td>
+              <td class="small">${req.secteur}</td>
               <td class="small">${req.type || '<span class="text-muted">—</span>'}</td>
               <td class="small">${req.requester}</td>
               <td class="desc-cell small" title="${req.description.replace(/"/g,'&quot;')}">${desc}</td>
@@ -364,7 +364,7 @@
 
     document.getElementById('vId').textContent        = '#' + req.id;
     document.getElementById('vDate').textContent      = req.date_submitted;
-    document.getElementById('vSecteur').textContent   = 'Secteur ' + req.secteur;
+    document.getElementById('vSecteur').textContent   = req.secteur;
     document.getElementById('vRequester').textContent = req.requester;
     document.getElementById('vDesc').textContent      = req.description;
     document.getElementById('vType').textContent      = req.type || '—';
@@ -409,6 +409,13 @@
     engineers.forEach(e => {
       sel.innerHTML += `<option value="${e}" ${e === req.assignee ? 'selected' : ''}>${e}</option>`;
     });
+
+    document.getElementById('mAssignee').onchange = function() {
+      const statusSel = document.getElementById('mStatus');
+      if (this.value && statusSel.value === 'SUBMITTED') {
+        statusSel.value = 'ASSIGNED';
+      }
+    };
 
     modal.show();
   }
