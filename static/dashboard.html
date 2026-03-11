@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tableau de bord – Demandes d'Ingénierie</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/style.css?v=6" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+</head>
+<body>
+
+<!-- Site Header -->
+<div class="site-header">
+  <div class="container-fluid px-4">
+    <div class="d-flex align-items-center gap-4">
+      <img src="/static/logo.svg" class="site-header-logo" alt="Howmet Aerospace">
+      <div class="site-header-divider d-none d-md-block"></div>
+      <div>
+        <div class="site-header-title">Système de Demandes d'Ingénierie</div>
+        <div class="site-header-subtitle">Soumettez, suivez et gérez les demandes d'ingénierie efficacement</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark site-nav">
+  <div class="container-fluid px-4">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="/">Accueil</a></li>
+        <li class="nav-item"><a class="nav-link" href="/submit">Soumettre</a></li>
+        <li class="nav-item"><a class="nav-link" href="/review">Examiner</a></li>
+        <li class="nav-item"><a class="nav-link  active" href="/dashboard">Tableau de bord</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid px-4 py-4">
+
+  <div class="d-flex align-items-center mb-4">
+    <h4 class="page-title mb-0"><i class="bi bi-bar-chart-fill me-2" style="color:#00B4CA"></i>Tableau de bord</h4>
+    <span class="ms-3 text-muted small" id="lastUpdated"></span>
+    <button class="btn btn-outline-secondary btn-sm ms-auto" onclick="loadDashboard()">
+      <i class="bi bi-arrow-clockwise me-1"></i>Actualiser
+    </button>
+  </div>
+
+  <!-- Cartes statistiques -->
+  <div class="row g-3 mb-4" id="statCards">
+    <div class="col"><div class="card p-3 text-center text-muted">Chargement…</div></div>
+  </div>
+
+  <!-- Graphiques -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-white border-0 pt-3 pb-0 px-4">
+          <h6 class="fw-bold mb-0">Demandes reçues par semaine</h6>
+        </div>
+        <div class="card-body">
+          <canvas id="weeklyChart" height="140"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="card h-100">
+        <div class="card-header bg-white border-0 pt-3 pb-0 px-4">
+          <h6 class="fw-bold mb-0">Répartition par statut</h6>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <canvas id="statusChart" style="max-height:260px"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="card h-100">
+        <div class="card-header bg-white border-0 pt-3 pb-0 px-4">
+          <h6 class="fw-bold mb-0">Répartition par type</h6>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <canvas id="typeChart" style="max-height:260px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cartes délai moyen -->
+  <div class="row g-3 mb-4" id="avgCards"></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Register datalabels plugin globally
+  Chart.register(ChartDataLabels);
+
+  let weeklyChartInstance = null;
+  let statusChartInstance = null;
+  let typeChartInstance   = null;
+
+  const STATUS_LABELS = {
+    'SUBMITTED':   'Soumis',
+    'ASSIGNED':    'Assigné',
+    'IN PROGRESS': 'En cours',
+    'DONE':        'Terminé',
+    'CANCELLED':   'Annulé'
+  };
+  const STATUS_COLORS = {
+    'SUBMITTED':   '#9ca3af',
+    'ASSIGNED':    '#0090a3',
+    'IN PROGRESS': '#f59e0b',
+    'DONE':        '#10b981',
+    'CANCELLED':   '#f472b6'
+  };
+  const TYPE_COLORS = [
+    '#00B4CA','#0090a3','#006f7e','#004f5a','#00d4ee',
+    '#0284c7','#0369a1','#075985','#0c4a6e','#38bdf8'
+  ];
+  const STATUS_CLASSES = {
+    'SUBMITTED':   'badge-submitted',
+    'ASSIGNED':    'badge-assigned',
+    'IN PROGRESS': 'badge-in-progress',
+    'DONE':        'badge-done',
+    'CANCELLED':   'badge-cancelled'
+  };
+
+  function agingClass(days) {
+    if (days > 7)  return 'aging-crit';
+    if (days > 3)  return 'aging-warn';
+    return 'aging-ok';
+  }
+
+  function statusBadge(status) {
+    return `<span class="badge-status ${STATUS_CLASSES[status] || 'badge-submitted'}">${STATUS_LABELS[status] || status}</span>`;
+  }
+
+  // Datalabels config for doughnut charts (label + value outside, deep blue)
+  function donutDatalabels() {
+    return {
+      display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
+      anchor: 'end',
+      align: 'end',
+      offset: 8,
+      color: '#0c4a6e',
+      font: { weight: 'bold', size: 11 },
+      formatter: function(value, ctx) {
+        return ctx.chart.data.labels[ctx.dataIndex] + '\n' + value;
+      }
+    };
+  }
+
+  function loadDashboard() {
+    fetch('/api/dashboard')
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('lastUpdated').textContent =
+          'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR');
+
+        // Cartes statistiques
+        const byStatus = {};
+        data.by_status.forEach(s => byStatus[s.status] = s.count);
+        const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
+
+        const cards = [
+          { label: 'Total des demandes', value: total,                       color: '#00B4CA', icon: 'bi-inbox-fill' },
+          { label: 'Soumises',           value: byStatus['SUBMITTED']   || 0, color: '#6b7280', icon: 'bi-clock' },
+          { label: 'Assignées',          value: byStatus['ASSIGNED']    || 0, color: '#0090a3', icon: 'bi-person-check-fill' },
+          { label: 'En cours',           value: byStatus['IN PROGRESS'] || 0, color: '#f59e0b', icon: 'bi-tools' },
+          { label: 'Terminées',          value: byStatus['DONE']        || 0, color: '#10b981', icon: 'bi-check-circle-fill' },
+          { label: 'Annulées',           value: byStatus['CANCELLED']   || 0, color: '#db2777', icon: 'bi-x-circle-fill' },
+        ];
+
+        document.getElementById('statCards').innerHTML = cards.map(c => `
+          <div class="col">
+            <div class="card stat-card" style="border-left-color:${c.color}">
+              <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                  <div>
+                    <div class="small text-muted fw-semibold text-uppercase" style="font-size:.7rem;letter-spacing:.5px">${c.label}</div>
+                    <div class="fw-bold" style="font-size:2rem;line-height:1;color:${c.color}">${c.value}</div>
+                  </div>
+                  <i class="bi ${c.icon} ms-auto" style="font-size:2rem;color:${c.color};opacity:.2"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        // Graphique barres — par semaine (labels above each bar)
+        if (weeklyChartInstance) weeklyChartInstance.destroy();
+        weeklyChartInstance = new Chart(document.getElementById('weeklyChart'), {
+          type: 'bar',
+          data: {
+            labels: data.by_week.map(w => w.week),
+            datasets: [{
+              label: 'Demandes',
+              data: data.by_week.map(w => w.count),
+              backgroundColor: '#00B4CA',
+              borderRadius: 6,
+              borderSkipped: false,
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              datalabels: {
+                anchor: 'end',
+                align: 'end',
+                color: '#374151',
+                font: { weight: 'bold', size: 12 },
+                formatter: v => v > 0 ? v : ''
+              }
+            },
+            scales: {
+              y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+            }
+          }
+        });
+
+        // Graphique donut — par statut
+        if (statusChartInstance) statusChartInstance.destroy();
+        statusChartInstance = new Chart(document.getElementById('statusChart'), {
+          type: 'doughnut',
+          data: {
+            labels: data.by_status.map(s => STATUS_LABELS[s.status] || s.status),
+            datasets: [{
+              data: data.by_status.map(s => s.count),
+              backgroundColor: data.by_status.map(s => STATUS_COLORS[s.status] || '#9ca3af'),
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            layout: { padding: 50 },
+            plugins: {
+              legend: { display: false },
+              datalabels: donutDatalabels()
+            }
+          }
+        });
+
+        // Graphique donut — par type
+        if (typeChartInstance) typeChartInstance.destroy();
+        if (data.by_type && data.by_type.length) {
+          typeChartInstance = new Chart(document.getElementById('typeChart'), {
+            type: 'doughnut',
+            data: {
+              labels: data.by_type.map(t => t.type),
+              datasets: [{
+                data: data.by_type.map(t => t.count),
+                backgroundColor: data.by_type.map((_, i) => TYPE_COLORS[i % TYPE_COLORS.length]),
+                borderWidth: 2,
+                borderColor: '#fff'
+              }]
+            },
+            options: {
+              responsive: true,
+              layout: { padding: 50 },
+              plugins: {
+                legend: { display: false },
+                datalabels: donutDatalabels()
+              }
+            }
+          });
+        }
+
+        // Cartes délai moyen (sur les demandes terminées)
+        const avgCards = [
+          {
+            label: 'Délai moyen total',
+            sublabel: 'Soumission → Clôture',
+            value: data.avg_lead_time !== null ? data.avg_lead_time + ' j' : '—',
+            color: '#7c3aed', icon: 'bi-hourglass-split'
+          },
+          {
+            label: 'Délai moyen exécution',
+            sublabel: 'En cours → Clôture',
+            value: data.avg_exec_time !== null ? data.avg_exec_time + ' j' : '—',
+            color: '#0284c7', icon: 'bi-speedometer2'
+          },
+        ];
+        document.getElementById('avgCards').innerHTML = avgCards.map(c => `
+          <div class="col-md-3">
+            <div class="card stat-card" style="border-left-color:${c.color}">
+              <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                  <div>
+                    <div class="small text-muted fw-semibold text-uppercase" style="font-size:.7rem;letter-spacing:.5px">${c.label}</div>
+                    <div class="text-muted" style="font-size:.7rem">${c.sublabel}</div>
+                    <div class="fw-bold mt-1" style="font-size:1.8rem;line-height:1;color:${c.color}">${c.value}</div>
+                  </div>
+                  <i class="bi ${c.icon} ms-auto" style="font-size:2rem;color:${c.color};opacity:.2"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+      })
+      .catch(err => console.error('Erreur chargement tableau de bord :', err));
+  }
+
+  loadDashboard();
+  setInterval(loadDashboard, 60000);
+</script>
+</body>
+</html>

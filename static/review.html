@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examiner les demandes – Demandes d'Ingénierie</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/style.css?v=6" rel="stylesheet">
+  <style>
+    .desc-cell { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .table td { vertical-align: middle; }
+  </style>
+</head>
+<body>
+
+<!-- Site Header -->
+<div class="site-header">
+  <div class="container-fluid px-4">
+    <div class="d-flex align-items-center gap-4">
+      <img src="/static/logo.svg" class="site-header-logo" alt="Howmet Aerospace">
+      <div class="site-header-divider d-none d-md-block"></div>
+      <div>
+        <div class="site-header-title">Système de Demandes d'Ingénierie</div>
+        <div class="site-header-subtitle">Soumettez, suivez et gérez les demandes d'ingénierie efficacement</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark site-nav">
+  <div class="container-fluid px-4">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="/">Accueil</a></li>
+        <li class="nav-item"><a class="nav-link" href="/submit">Soumettre</a></li>
+        <li class="nav-item"><a class="nav-link  active" href="/review">Examiner</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Tableau de bord</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid px-4 py-4">
+
+  <div class="d-flex align-items-center mb-3">
+    <h4 class="page-title mb-0"><i class="bi bi-list-check me-2" style="color:#00B4CA"></i>Examiner les demandes d'ingénierie</h4>
+    <div class="ms-auto d-flex gap-2">
+      <a href="/api/export" class="btn btn-success btn-sm" download>
+        <i class="bi bi-file-earmark-excel me-1"></i>Exporter Excel
+      </a>
+      <button class="btn btn-outline-primary btn-sm" onclick="loadRequests()">
+        <i class="bi bi-arrow-clockwise me-1"></i>Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="card mb-3">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2">
+          <label class="form-label mb-1">Type</label>
+          <select class="form-select form-select-sm" id="fType">
+            <option value="">Tous les types</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label mb-1">Demandeur</label>
+          <select class="form-select form-select-sm" id="fRequester">
+            <option value="">Tous les demandeurs</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label mb-1">Statut</label>
+          <select class="form-select form-select-sm" id="fStatus">
+            <option value="">Tous les statuts</option>
+            <option value="SUBMITTED">Soumis</option>
+            <option value="ASSIGNED">Assigné</option>
+            <option value="IN PROGRESS">En cours</option>
+            <option value="DONE">Terminé</option>
+            <option value="CANCELLED">Annulé</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label mb-1">Assigné à</label>
+          <select class="form-select form-select-sm" id="fAssignee">
+            <option value="">Tous les assignés</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button class="btn btn-primary btn-sm flex-fill" onclick="applyFilters()">
+            <i class="bi bi-funnel me-1"></i>Filtrer
+          </button>
+          <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="clearFilters()">
+            <i class="bi bi-x me-1"></i>Effacer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau -->
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th style="width:50px">ID</th>
+              <th>Date</th>
+              <th>Secteur</th>
+              <th>Type</th>
+              <th>Demandeur</th>
+              <th>Description</th>
+              <th>Statut</th>
+              <th>Assigné à</th>
+              <th title="Depuis le passage En cours jusqu'à clôture">Délai exéc.</th>
+              <th title="Depuis la soumission jusqu'à clôture">Délai total</th>
+              <th style="width:60px">Fichier</th>
+              <th style="width:80px">Action</th>
+            </tr>
+          </thead>
+          <tbody id="tBody">
+            <tr><td colspan="12" class="text-center py-4 text-muted">Chargement…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal de visualisation -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#f8fafc">
+        <h5 class="modal-title"><i class="bi bi-eye me-2 text-secondary"></i>Détails de la demande <span id="vId" class="text-muted"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="row g-3 mb-3">
+          <div class="col-sm-4">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Date</div>
+            <div id="vDate" class="fw-semibold"></div>
+          </div>
+          <div class="col-sm-4">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Secteur</div>
+            <div id="vSecteur" class="fw-semibold"></div>
+          </div>
+          <div class="col-sm-4">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Demandeur</div>
+            <div id="vRequester" class="fw-semibold"></div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-sm-4">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Type</div>
+            <div id="vType" class="fw-semibold"></div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Description</div>
+          <div id="vDesc" class="p-3 bg-light rounded" style="white-space:pre-wrap;line-height:1.6"></div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-sm-4">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Statut</div>
+            <div id="vStatus"></div>
+          </div>
+          <div class="col-sm-4">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Assigné à</div>
+            <div id="vAssignee" class="fw-semibold"></div>
+          </div>
+          <div class="col-sm-2">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Délai exéc.</div>
+            <div id="vAging" class="fw-semibold"></div>
+          </div>
+          <div class="col-sm-2">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Délai total</div>
+            <div id="vLeadTime" class="fw-semibold"></div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Date de création</div>
+            <div id="vCreated" class="small text-muted"></div>
+          </div>
+          <div class="col-sm-6">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="letter-spacing:.5px">Pièce jointe</div>
+            <div id="vFile"></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="background:#f8fafc">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de modification -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Modifier la demande <span id="mId" class="text-muted"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" id="mDesc" rows="4"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="mType">
+            <option value="">— Non défini —</option>
+          </select>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Assigner à</label>
+            <select class="form-select" id="mAssignee">
+              <option value="">— Non assigné —</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Statut</label>
+            <select class="form-select" id="mStatus">
+              <option value="SUBMITTED">Soumis</option>
+              <option value="ASSIGNED">Assigné</option>
+              <option value="IN PROGRESS">En cours</option>
+              <option value="DONE">Terminé</option>
+              <option value="CANCELLED">Annulé</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button class="btn btn-primary" onclick="saveEdit()">
+          <i class="bi bi-check2 me-1"></i>Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let engineers = [];
+  let types = [];
+  let requestsData = [];
+  let currentEditId = null;
+  const modal     = new bootstrap.Modal(document.getElementById('editModal'));
+  const viewModal = new bootstrap.Modal(document.getElementById('viewModal'));
+
+  const STATUS_LABELS = {
+    'SUBMITTED':   'Soumis',
+    'ASSIGNED':    'Assigné',
+    'IN PROGRESS': 'En cours',
+    'DONE':        'Terminé',
+    'CANCELLED':   'Annulé'
+  };
+  const STATUS_CLASSES = {
+    'SUBMITTED':   'badge-submitted',
+    'ASSIGNED':    'badge-assigned',
+    'IN PROGRESS': 'badge-in-progress',
+    'DONE':        'badge-done',
+    'CANCELLED':   'badge-cancelled'
+  };
+
+  function statusBadge(status) {
+    return `<span class="badge-status ${STATUS_CLASSES[status] || 'badge-submitted'}">${STATUS_LABELS[status] || status}</span>`;
+  }
+
+  function agingHtml(days, status) {
+    if (days === null || days === undefined) return '<span class="text-muted">—</span>';
+    let cls = 'aging-ok';
+    if (days > 7) cls = 'aging-crit';
+    else if (days > 3) cls = 'aging-warn';
+    const note = status === 'DONE' ? ' ✓' : '';
+    return `<span class="${cls}">${days}j${note}</span>`;
+  }
+
+  function loadRequests(filters = {}) {
+    const p = new URLSearchParams();
+    if (filters.type)      p.append('type',      filters.type);
+    if (filters.requester) p.append('requester', filters.requester);
+    if (filters.status)    p.append('status',    filters.status);
+    if (filters.assignee)  p.append('assignee',  filters.assignee);
+
+    fetch('/api/requests?' + p)
+      .then(r => r.json())
+      .then(data => {
+        requestsData = data;
+        const tbody = document.getElementById('tBody');
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">Aucune demande trouvée.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(req => {
+          const desc = req.description.length > 70
+            ? req.description.slice(0, 70) + '…'
+            : req.description;
+          const fileBtn = req.attachment_path
+            ? `<a href="/${req.attachment_path}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Télécharger la pièce jointe">
+                 <i class="bi bi-paperclip"></i>
+               </a>`
+            : '<span class="text-muted">—</span>';
+          return `
+            <tr>
+              <td class="text-muted small">#${req.id}</td>
+              <td class="small">${req.date_submitted}</td>
+              <td class="small">Secteur ${req.secteur}</td>
+              <td class="small">${req.type || '<span class="text-muted">—</span>'}</td>
+              <td class="small">${req.requester}</td>
+              <td class="desc-cell small" title="${req.description.replace(/"/g,'&quot;')}">${desc}</td>
+              <td>${statusBadge(req.status)}</td>
+              <td class="small">${req.assignee || '<span class="text-muted">—</span>'}</td>
+              <td>${agingHtml(req.aging_days, req.status)}</td>
+              <td>${agingHtml(req.lead_time_days, req.status)}</td>
+              <td>${fileBtn}</td>
+              <td class="d-flex gap-1">
+                <button class="btn btn-sm btn-outline-secondary view-btn" data-id="${req.id}" title="Voir les détails">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-primary edit-btn" data-id="${req.id}" title="Modifier">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </td>
+            </tr>`;
+        }).join('');
+
+        tbody.querySelectorAll('.edit-btn').forEach(btn => {
+          btn.addEventListener('click', () => openEdit(parseInt(btn.dataset.id)));
+        });
+        tbody.querySelectorAll('.view-btn').forEach(btn => {
+          btn.addEventListener('click', () => openView(parseInt(btn.dataset.id)));
+        });
+      });
+  }
+
+  function fmtDays(days) {
+    if (days === null || days === undefined) return '—';
+    return `${days} jour${days > 1 ? 's' : ''}`;
+  }
+
+  function openView(id) {
+    const req = requestsData.find(r => r.id === id);
+    if (!req) return;
+
+    document.getElementById('vId').textContent        = '#' + req.id;
+    document.getElementById('vDate').textContent      = req.date_submitted;
+    document.getElementById('vSecteur').textContent   = 'Secteur ' + req.secteur;
+    document.getElementById('vRequester').textContent = req.requester;
+    document.getElementById('vDesc').textContent      = req.description;
+    document.getElementById('vType').textContent      = req.type || '—';
+    document.getElementById('vAssignee').textContent  = req.assignee || '—';
+    document.getElementById('vAging').textContent     = fmtDays(req.aging_days);
+    document.getElementById('vLeadTime').textContent  = fmtDays(req.lead_time_days);
+    document.getElementById('vCreated').textContent   = req.created_at ? req.created_at.replace('T', ' ') : '—';
+
+    const statusEl = document.getElementById('vStatus');
+    statusEl.innerHTML = statusBadge(req.status);
+
+    const fileEl = document.getElementById('vFile');
+    if (req.attachment_path) {
+      fileEl.innerHTML = `<a href="/${req.attachment_path}" target="_blank" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-paperclip me-1"></i>Télécharger la pièce jointe
+      </a>`;
+    } else {
+      fileEl.textContent = 'Aucune pièce jointe';
+      fileEl.className = 'text-muted';
+    }
+
+    viewModal.show();
+  }
+
+  function openEdit(id) {
+    const req = requestsData.find(r => r.id === id);
+    if (!req) return;
+    currentEditId = id;
+
+    document.getElementById('mId').textContent = '#' + id;
+    document.getElementById('mDesc').value = req.description;
+    document.getElementById('mStatus').value = req.status;
+
+    const typeSel = document.getElementById('mType');
+    typeSel.innerHTML = '<option value="">— Non défini —</option>';
+    types.forEach(t => {
+      typeSel.innerHTML += `<option value="${t}" ${t === req.type ? 'selected' : ''}>${t}</option>`;
+    });
+
+    const sel = document.getElementById('mAssignee');
+    sel.innerHTML = '<option value="">— Non assigné —</option>';
+    engineers.forEach(e => {
+      sel.innerHTML += `<option value="${e}" ${e === req.assignee ? 'selected' : ''}>${e}</option>`;
+    });
+
+    modal.show();
+  }
+
+  async function saveEdit() {
+    const assignee    = document.getElementById('mAssignee').value;
+    const status      = document.getElementById('mStatus').value;
+    const description = document.getElementById('mDesc').value.trim();
+    try {
+      const res = await fetch(`/api/requests/${currentEditId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignee: assignee || null, status, description: description || null, type: document.getElementById('mType').value || null })
+      });
+      if (!res.ok) throw new Error('Échec de la sauvegarde');
+      modal.hide();
+      loadRequests(getFilters());
+    } catch (err) {
+      alert('Erreur : ' + err.message);
+    }
+  }
+
+  function getFilters() {
+    return {
+      type:      document.getElementById('fType').value,
+      requester: document.getElementById('fRequester').value,
+      status:    document.getElementById('fStatus').value,
+      assignee:  document.getElementById('fAssignee').value,
+    };
+  }
+
+  function applyFilters() { loadRequests(getFilters()); }
+  function clearFilters() {
+    ['fType','fRequester','fStatus','fAssignee'].forEach(id => document.getElementById(id).value = '');
+    loadRequests();
+  }
+
+  fetch('/api/staff').then(r => r.json()).then(data => {
+    engineers = data.engineers;
+    types = data.types || [];
+    const fType = document.getElementById('fType');
+    types.forEach(t => fType.innerHTML += `<option value="${t}">${t}</option>`);
+    const fReq = document.getElementById('fRequester');
+    data.requesters.forEach(n => fReq.innerHTML += `<option value="${n}">${n}</option>`);
+    const fAss = document.getElementById('fAssignee');
+    data.engineers.forEach(n => fAss.innerHTML += `<option value="${n}">${n}</option>`);
+  });
+
+  loadRequests();
+</script>
+</body>
+</html>

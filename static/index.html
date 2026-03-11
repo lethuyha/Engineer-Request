@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Système de Demandes d'Ingénierie</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/style.css?v=6" rel="stylesheet">
+</head>
+<body>
+
+<!-- Site Header -->
+<div class="site-header">
+  <div class="container-fluid px-4">
+    <div class="d-flex align-items-center gap-4">
+      <img src="/static/logo.svg" class="site-header-logo" alt="Howmet Aerospace">
+      <div class="site-header-divider d-none d-md-block"></div>
+      <div>
+        <div class="site-header-title">Système de Demandes d'Ingénierie</div>
+        <div class="site-header-subtitle">Soumettez, suivez et gérez les demandes d'ingénierie efficacement</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark site-nav">
+  <div class="container-fluid px-4">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link  active" href="/">Accueil</a></li>
+        <li class="nav-item"><a class="nav-link" href="/submit">Soumettre</a></li>
+        <li class="nav-item"><a class="nav-link" href="/review">Examiner</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Tableau de bord</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-5">
+  <div class="row g-4 justify-content-center">
+
+    <div class="col-md-4">
+      <div class="card h-100 text-center p-4">
+        <div class="card-body">
+          <div class="mb-3" style="font-size:3rem;color:#00B4CA">
+            <i class="bi bi-plus-circle-fill"></i>
+          </div>
+          <h5 class="fw-bold">Soumettre une demande</h5>
+          <p class="text-muted small">Pour les opérateurs ayant besoin d'un support ingénierie. Remplissez le formulaire et suivez votre soumission.</p>
+          <a href="/submit" class="btn btn-primary mt-2 px-4">Accéder au formulaire</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card h-100 text-center p-4">
+        <div class="card-body">
+          <div class="mb-3" style="font-size:3rem;color:#00B4CA">
+            <i class="bi bi-list-check"></i>
+          </div>
+          <h5 class="fw-bold">Examiner les demandes</h5>
+          <p class="text-muted small">Pour les ingénieurs afin d'examiner, d'assigner et de mettre à jour le statut des demandes reçues.</p>
+          <a href="/review" class="btn mt-2 px-4" style="background:#1a1a1a;color:#fff">Examiner</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card h-100 text-center p-4">
+        <div class="card-body">
+          <div class="mb-3" style="font-size:3rem;color:#00B4CA">
+            <i class="bi bi-bar-chart-fill"></i>
+          </div>
+          <h5 class="fw-bold">Tableau de bord</h5>
+          <p class="text-muted small">Volume hebdomadaire, répartition par statut et rapport de délai en un coup d'œil.</p>
+          <a href="/dashboard" class="btn mt-2 px-4" style="background:#1a1a1a;color:#fff">Tableau de bord</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

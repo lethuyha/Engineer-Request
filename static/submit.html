@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soumettre une demande – Demandes d'Ingénierie</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/style.css?v=6" rel="stylesheet">
+</head>
+<body>
+
+<!-- Site Header -->
+<div class="site-header">
+  <div class="container-fluid px-4">
+    <div class="d-flex align-items-center gap-4">
+      <img src="/static/logo.svg" class="site-header-logo" alt="Howmet Aerospace">
+      <div class="site-header-divider d-none d-md-block"></div>
+      <div>
+        <div class="site-header-title">Système de Demandes d'Ingénierie</div>
+        <div class="site-header-subtitle">Soumettez, suivez et gérez les demandes d'ingénierie efficacement</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark site-nav">
+  <div class="container-fluid px-4">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="/">Accueil</a></li>
+        <li class="nav-item"><a class="nav-link  active" href="/submit">Soumettre</a></li>
+        <li class="nav-item"><a class="nav-link" href="/review">Examiner</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Tableau de bord</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <div class="card p-2">
+        <div class="card-body">
+          <h4 class="page-title mb-1"><i class="bi bi-plus-circle me-2 teal-icon"></i>Soumettre une demande d'ingénierie</h4>
+          <p class="text-muted small mb-4">Remplissez le formulaire ci-dessous pour soumettre une nouvelle demande.</p>
+
+          <div id="alertSuccess" class="alert alert-success d-none">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            Demande soumise avec succès ! Référence : <strong id="refId"></strong>
+          </div>
+          <div id="alertError" class="alert alert-danger d-none">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span id="errMsg"></span>
+          </div>
+
+          <form id="reqForm" novalidate>
+
+            <div class="mb-3">
+              <label class="form-label">Date</label>
+              <input type="text" class="form-control" id="dateDisplay" readonly style="background:#f8fafc">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Secteur <span class="text-danger">*</span></label>
+              <select class="form-select" name="secteur" required>
+                <option value="">Sélectionner un secteur…</option>
+                <option value="1">Secteur 1</option>
+                <option value="2">Secteur 2</option>
+                <option value="3">Secteur 3</option>
+                <option value="4">Secteur 4</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Demandeur <span class="text-danger">*</span></label>
+              <select class="form-select" name="requester" id="requesterSel" required>
+                <option value="">Chargement…</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Type <span class="text-danger">*</span></label>
+              <select class="form-select" name="type" id="typeSel" required>
+                <option value="">Sélectionner un type…</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Description de la demande <span class="text-danger">*</span></label>
+              <textarea class="form-control" name="description" rows="5"
+                placeholder="Décrivez la demande d'ingénierie en détail…" required></textarea>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label">Pièce jointe <span class="text-muted fw-normal">(optionnel)</span></label>
+              <input type="file" class="form-control" name="file">
+              <div class="form-text">Joignez tout document, photo ou fichier pertinent.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary px-4" id="submitBtn">
+                <i class="bi bi-send me-2"></i>Soumettre
+              </button>
+              <button type="reset" class="btn btn-outline-secondary px-4">
+                <i class="bi bi-x-circle me-2"></i>Effacer
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Afficher la date du jour
+  document.getElementById('dateDisplay').value = new Date().toLocaleDateString('fr-FR', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  // Charger les demandeurs
+  fetch('/api/staff')
+    .then(r => r.json())
+    .then(data => {
+      const sel = document.getElementById('requesterSel');
+      sel.innerHTML = '<option value="">Sélectionner un demandeur…</option>';
+      data.requesters.forEach(name => {
+        sel.innerHTML += `<option value="${name}">${name}</option>`;
+      });
+      const typeSel = document.getElementById('typeSel');
+      (data.types || []).forEach(t => {
+        typeSel.innerHTML += `<option value="${t}">${t}</option>`;
+      });
+    })
+    .catch(() => {
+      document.getElementById('requesterSel').innerHTML =
+        '<option value="">Impossible de charger — vérifiez le serveur</option>';
+    });
+
+  // Soumission du formulaire
+  document.getElementById('reqForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi en cours…';
+
+    const fd = new FormData(e.target);
+
+    try {
+      const res = await fetch('/api/requests', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Échec de la soumission');
+
+      document.getElementById('refId').textContent = '#' + data.id;
+      document.getElementById('alertSuccess').classList.remove('d-none');
+      document.getElementById('alertError').classList.add('d-none');
+      e.target.reset();
+      document.getElementById('dateDisplay').value = new Date().toLocaleDateString('fr-FR', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+      window.scrollTo(0, 0);
+    } catch (err) {
+      document.getElementById('errMsg').textContent = err.message;
+      document.getElementById('alertError').classList.remove('d-none');
+      document.getElementById('alertSuccess').classList.add('d-none');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-send me-2"></i>Soumettre';
+    }
+  });
+</script>
+</body>
+</html>

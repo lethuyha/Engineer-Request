@@ -1,0 +1,26 @@
+# Environment
+.env
+*.env
+
+# Database (don't push real data)
+data/
+*.db
+*.sqlite
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Temp files
+.tmp/
+uploads/
+
+# OS
+.DS_Store
+
+# Claude Code
+.claude/
