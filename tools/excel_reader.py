@@ -15,6 +15,9 @@ DEFAULTS = {
         "Amélioration process", "Modification technique", "Analyse qualité",
         "Qualification", "Étude faisabilité", "Documentation", "Maintenance préventive",
     ]),
+    "Secteurs": sorted([
+        "Fonderie", "Usinage", "Qualité", "HSE", "Maintenance",
+    ]),
 }
 
 
@@ -37,4 +40,5 @@ def get_staff():
         "requesters": _read_sheet("Requesters"),
         "engineers":  _read_sheet("Engineers"),
         "types":      _read_sheet("Types"),
+        "secteurs":   _read_sheet("Secteurs"),
     }

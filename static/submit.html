@@ -68,12 +68,8 @@
 
             <div class="mb-3">
               <label class="form-label">Secteur <span class="text-danger">*</span></label>
-              <select class="form-select" name="secteur" required>
-                <option value="">Sélectionner un secteur…</option>
-                <option value="1">Secteur 1</option>
-                <option value="2">Secteur 2</option>
-                <option value="3">Secteur 3</option>
-                <option value="4">Secteur 4</option>
+              <select class="form-select" name="secteur" id="secteurSel" required>
+                <option value="">Chargement…</option>
               </select>
             </div>
 
@@ -131,12 +127,20 @@
   fetch('/api/staff')
     .then(r => r.json())
     .then(data => {
+      const secteurSel = document.getElementById('secteurSel');
+      secteurSel.innerHTML = '<option value="">Sélectionner un secteur…</option>';
+      (data.secteurs || []).forEach(s => {
+        secteurSel.innerHTML += `<option value="${s}">${s}</option>`;
+      });
+
       const sel = document.getElementById('requesterSel');
       sel.innerHTML = '<option value="">Sélectionner un demandeur…</option>';
       data.requesters.forEach(name => {
         sel.innerHTML += `<option value="${name}">${name}</option>`;
       });
+
       const typeSel = document.getElementById('typeSel');
+      typeSel.innerHTML = '<option value="">Sélectionner un type…</option>';
       (data.types || []).forEach(t => {
         typeSel.innerHTML += `<option value="${t}">${t}</option>`;
       });
