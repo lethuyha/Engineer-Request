@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from tools.db import create_request, get_all_requests, get_dashboard_data, init_db, update_request
+from tools.db import create_request, get_all_requests, get_dashboard_data, init_db, seed_demo_data, update_request
 from tools.export import generate_export
 from tools.excel_reader import get_staff
 
@@ -26,6 +26,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 @app.on_event("startup")
 def startup():
     init_db()
+    seed_demo_data()
     UPLOADS_DIR.mkdir(exist_ok=True)
 
 

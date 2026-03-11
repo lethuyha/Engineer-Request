@@ -34,6 +34,62 @@ def init_db():
     conn.close()
 
 
+def seed_demo_data():
+    conn = get_connection()
+    count = conn.execute("SELECT COUNT(*) FROM requests").fetchone()[0]
+    if count > 0:
+        conn.close()
+        return
+
+    from datetime import timedelta
+    today = date.today()
+
+    records = [
+        # (date_submitted, secteur, requester, description, type, status, assignee, date_assigned, date_in_progress, date_done)
+        (today - timedelta(days=42), "Fonderie", "Marc Dupont",    "Révision du process de coulée pour réduire les porosités",          "Amélioration process",  "DONE",        "Sophie Martin",  today - timedelta(days=40), today - timedelta(days=38), today - timedelta(days=10)),
+        (today - timedelta(days=38), "Usinage",  "Lucie Bernard",  "Mise à jour des paramètres d'usinage CNC sur ligne 3",              "Modification technique", "DONE",        "Thomas Leroy",   today - timedelta(days=36), today - timedelta(days=34), today - timedelta(days=15)),
+        (today - timedelta(days=35), "Qualité",  "Jean Moreau",    "Analyse des non-conformités du lot QC-2024-112",                    "Analyse qualité",        "DONE",        "Sophie Martin",  today - timedelta(days=33), today - timedelta(days=31), today - timedelta(days=20)),
+        (today - timedelta(days=30), "Fonderie", "Marie Lefebvre", "Optimisation du cycle thermique four 4",                            "Amélioration process",   "DONE",        "Thomas Leroy",   today - timedelta(days=28), today - timedelta(days=26), today - timedelta(days=12)),
+        (today - timedelta(days=28), "Maintenance","Paul Girard",  "Inspection préventive robot de sablage",                            "Maintenance préventive", "DONE",        "Ahmed Benali",   today - timedelta(days=26), today - timedelta(days=25), today - timedelta(days=8)),
+        (today - timedelta(days=25), "Usinage",  "Lucie Bernard",  "Qualification nouvel outil de fraisage Ø32",                        "Qualification",          "DONE",        "Thomas Leroy",   today - timedelta(days=23), today - timedelta(days=22), today - timedelta(days=5)),
+        (today - timedelta(days=21), "Qualité",  "Jean Moreau",    "Mise à jour de la gamme de contrôle pièce ref. AT-7712",            "Modification technique",  "IN PROGRESS", "Sophie Martin",  today - timedelta(days=19), today - timedelta(days=17), None),
+        (today - timedelta(days=18), "Fonderie", "Marc Dupont",    "Étude faisabilité nouveau alliage aluminium A357",                  "Étude faisabilité",      "IN PROGRESS", "Ahmed Benali",   today - timedelta(days=16), today - timedelta(days=14), None),
+        (today - timedelta(days=14), "HSE",      "Claire Rousseau","Mise à jour procédure sécurité zone de fusion",                     "Documentation",          "IN PROGRESS", "Sophie Martin",  today - timedelta(days=12), today - timedelta(days=11), None),
+        (today - timedelta(days=12), "Usinage",  "Paul Girard",    "Problème vibrations broche machine M12 à investiguer",              "Analyse qualité",        "ASSIGNED",    "Thomas Leroy",   today - timedelta(days=10), None,                       None),
+        (today - timedelta(days=10), "Maintenance","Marie Lefebvre","Remplacement joints hydrauliques presse 500T",                     "Maintenance préventive", "ASSIGNED",    "Ahmed Benali",   today - timedelta(days=8),  None,                       None),
+        (today - timedelta(days=7),  "Qualité",  "Jean Moreau",    "Dérogation client pièce hors-tolérance ref BT-4401",                "Modification technique",  "ASSIGNED",    "Sophie Martin",  today - timedelta(days=5),  None,                       None),
+        (today - timedelta(days=5),  "Fonderie", "Marc Dupont",    "Calibration capteurs température four 2",                           "Qualification",          "SUBMITTED",   None,             None,                       None,                       None),
+        (today - timedelta(days=4),  "Usinage",  "Lucie Bernard",  "Demande d'outillage spécial pour ref. AT-9003",                    "Étude faisabilité",      "SUBMITTED",   None,             None,                       None,                       None),
+        (today - timedelta(days=3),  "HSE",      "Claire Rousseau","Formation sécurité machines équipe nuit",                          "Documentation",          "SUBMITTED",   None,             None,                       None,                       None),
+        (today - timedelta(days=2),  "Qualité",  "Paul Girard",    "Audit interne procédure métrologie salle de contrôle",             "Analyse qualité",        "SUBMITTED",   None,             None,                       None,                       None),
+        (today - timedelta(days=1),  "Fonderie", "Marie Lefebvre", "Demande de modification paramètres injection moule M-07",          "Amélioration process",   "SUBMITTED",   None,             None,                       None,                       None),
+        (today,                      "Usinage",  "Marc Dupont",    "Optimisation trajectoires robot chargement/déchargement",          "Amélioration process",   "SUBMITTED",   None,             None,                       None,                       None),
+        (today - timedelta(days=9),  "Maintenance","Jean Moreau",   "Remplacement variateur de fréquence convoyeur C3",                 "Maintenance préventive", "CANCELLED",   "Ahmed Benali",   today - timedelta(days=8),  None,                       None),
+    ]
+
+    now = datetime.now().isoformat(timespec="seconds")
+    for r in records:
+        (ds, secteur, requester, desc, rtype, status, assignee,
+         date_assigned, date_in_progress, date_done) = r
+        conn.execute(
+            """INSERT INTO requests
+               (date_submitted, secteur, requester, description, type,
+                status, assignee, date_assigned, date_in_progress, date_done,
+                attachment_path, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)""",
+            (
+                ds.isoformat(), secteur, requester, desc, rtype,
+                status, assignee,
+                date_assigned.isoformat() if date_assigned else None,
+                date_in_progress.isoformat() if date_in_progress else None,
+                date_done.isoformat() if date_done else None,
+                now,
+            ),
+        )
+    conn.commit()
+    conn.close()
+
+
 def create_request(secteur, requester, description, type=None, attachment_path=None):
     from tools.logger import log_creation
 
